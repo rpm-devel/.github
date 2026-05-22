@@ -78,6 +78,43 @@ RUN dnf install -y \
     && dnf clean all \
     && rm -rf /var/cache/dnf /var/log/dnf* /var/log/hawkey.log
 
+# Extra repos — RPM Fusion (free + nonfree) for Fedora, so dnf builddep
+# can resolve packages not in the main Fedora repo (codecs, drivers, etc.).
+# EPEL applies only to EL targets; mock handles it via its chroot configs.
+RUN dnf install -y \
+      https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+      https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm \
+    && dnf clean all \
+    && rm -rf /var/cache/dnf /var/log/dnf* /var/log/hawkey.log
+
+# Provider CLIs — gh (GitHub), glab (GitLab), tea (Gitea + Forgejo)
+# gh: official RPM repo; glab + tea: latest release binary from their APIs
+RUN set -euo pipefail; \
+    case "$(uname -m)" in \
+      x86_64)  GOARCH=amd64 ;; \
+      aarch64) GOARCH=arm64 ;; \
+      *)       echo "unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+    esac; \
+    dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo; \
+    dnf install -y gh; \
+    dnf clean all; \
+    rm -rf /var/cache/dnf /var/log/dnf* /var/log/hawkey.log; \
+    GLAB_VER=$(curl -qLSs \
+      "https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/releases" \
+      | jq -r '.[0].tag_name'); \
+    curl -qLSs \
+      "https://gitlab.com/gitlab-org/cli/-/releases/${GLAB_VER}/downloads/glab_${GLAB_VER#v}_linux_${GOARCH}.tar.gz" \
+      | tar -xz -C /tmp; \
+    install -m 0755 /tmp/bin/glab /usr/local/bin/glab; \
+    rm -rf /tmp/bin; \
+    TEA_ASSET="tea-linux-${GOARCH}"; \
+    TEA_URL=$(curl -qLSs \
+      "https://gitea.com/api/v1/repos/gitea/tea/releases?limit=1" \
+      | jq -r --arg a "$TEA_ASSET" \
+        '.[0].assets[] | select(.name == $a) | .browser_download_url'); \
+    curl -qLSs "$TEA_URL" -o /usr/local/bin/tea; \
+    chmod 0755 /usr/local/bin/tea
+
 # Add root to mock group so mock works without sudo inside the container
 RUN usermod -aG mock root
 
