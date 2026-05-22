@@ -37,10 +37,6 @@ RUN dnf install -y \
 # Add root to mock group so mock works without sudo inside the container
 RUN usermod -aG mock root
 
-# CentOS 7 is EOL — official mirrors are dead; override to vault.centos.org
-COPY rootfs/etc/mock/centos-7-x86_64.cfg   /etc/mock/centos-7-x86_64.cfg
-COPY rootfs/etc/mock/centos-7-aarch64.cfg  /etc/mock/centos-7-aarch64.cfg
-
 # Entrypoint: configures signing env vars and optionally runs a non-interactive build
 COPY rootfs/usr/local/bin/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 0755 /usr/local/bin/entrypoint.sh

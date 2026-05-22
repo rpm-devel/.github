@@ -27,13 +27,17 @@ docker run --rm -it --privileged \
 
 ### Supported Targets
 
+Mock configs are provided by `mock-core-configs`. EOL targets live under the `eol/` prefix.
+
 | Target | Mock config |
 |---|---|
-| RHEL / CentOS 7 | `centos-7-x86_64` · `centos-7-aarch64` |
+| RHEL / CentOS 7 (EOL) | `eol/centos-7-x86_64` · `eol/centos-7-aarch64` |
 | RHEL / AlmaLinux 8 | `almalinux-8-x86_64` · `almalinux-8-aarch64` |
 | RHEL / AlmaLinux 9 | `almalinux-9-x86_64` · `almalinux-9-aarch64` |
 | RHEL / AlmaLinux 10 | `almalinux-10-x86_64` · `almalinux-10-aarch64` |
-| Fedora 36 → current | `fedora-36-x86_64` … `fedora-latest-x86_64` |
+| Fedora 36–41 (EOL) | `eol/fedora-36-x86_64` … `eol/fedora-41-x86_64` |
+| Fedora 42–45 | `fedora-42-x86_64` … `fedora-45-x86_64` |
+| Fedora Rawhide | `fedora-rawhide-x86_64` · `fedora-rawhide-aarch64` |
 
 Build for a specific target:
 
@@ -41,9 +45,9 @@ Build for a specific target:
 # Build a SRPM first, then rebuild for each target
 rpmbuild -bs ~/rpmbuild/SPECS/package.spec
 
-mock -r almalinux-9-x86_64  --rebuild ~/rpmbuild/SRPMS/package-1.0-1.src.rpm
-mock -r almalinux-9-aarch64 --rebuild ~/rpmbuild/SRPMS/package-1.0-1.src.rpm
-mock -r centos-7-x86_64     --rebuild ~/rpmbuild/SRPMS/package-1.0-1.src.rpm
+mock -r almalinux-9-x86_64       --rebuild ~/rpmbuild/SRPMS/package-1.0-1.src.rpm
+mock -r almalinux-9-aarch64      --rebuild ~/rpmbuild/SRPMS/package-1.0-1.src.rpm
+mock -r eol/centos-7-x86_64      --rebuild ~/rpmbuild/SRPMS/package-1.0-1.src.rpm
 ```
 
 ### Image tags
