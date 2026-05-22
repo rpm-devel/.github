@@ -1,0 +1,14 @@
+# gitcommit / push control
+.gitcommit
+.no_push
+.no_git
+.installed
+
+# OS
+.DS_Store
+Thumbs.db
+
+# dotenv
+.env
+*.env
+.env.*
