@@ -37,6 +37,18 @@ RUN dnf install -y \
 # Add root to mock group so mock works without sudo inside the container
 RUN usermod -aG mock root
 
+# Override EOL Fedora configs (36-41) to use archives.fedoraproject.org.
+# mock-core-configs ships these pointing at mirrors.fedoraproject.org/metalink,
+# which stops serving content once a Fedora release goes EOL.
+COPY rootfs/etc/mock/templates/fedora-archive.tpl /etc/mock/templates/fedora-archive.tpl
+RUN for ver in 36 37 38 39 40 41; do \
+      for arch in x86_64 aarch64; do \
+        printf "config_opts['releasever'] = '%s'\nconfig_opts['target_arch'] = '%s'\nconfig_opts['legal_host_arches'] = ('%s',)\n\ninclude('templates/fedora-archive.tpl')\n" \
+          "${ver}" "${arch}" "${arch}" \
+          > "/etc/mock/eol/fedora-${ver}-${arch}.cfg"; \
+      done; \
+    done
+
 # Entrypoint: configures signing env vars and optionally runs a non-interactive build
 COPY rootfs/usr/local/bin/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 0755 /usr/local/bin/entrypoint.sh

@@ -11,12 +11,11 @@
 #   RPM_OUTPUT_DIR          Directory to copy built RPMs into after a successful build
 #                           (default: /root/Documents/builds)
 #
-# EOL handling:
-#   Targets whose config lives under eol/ (e.g. eol/centos-7-x86_64, eol/fedora-40-x86_64)
-#   are treated as best-effort. If the build fails — typically because upstream repo mirrors
-#   are gone — the failure is logged as a warning and the entrypoint exits 0 so the calling
-#   pipeline continues. Any RPMs already present in RPM_OUTPUT_DIR for that target are left
-#   untouched. Non-EOL build failures always exit 1.
+# EOL targets (eol/ prefix) are treated identically to current targets — build failures
+# are always hard errors (exit 1). EOL simply means the repos have moved to an archive
+# location; security and bug-fix builds for EOL releases are still fully supported.
+# The EOL configs in this image override mock-core-configs to use the correct
+# archive URLs (archives.fedoraproject.org, vault.centos.org) rather than live mirrors.
 set -euo pipefail
 
 RPM_SIGN_PASS_FILE="${RPM_SIGN_PASS_FILE:-/root/.gnupg/rpm_sign_pass.txt}"
@@ -55,20 +54,10 @@ if [ -n "${RPM_TARGET:-}" ]; then
     exit 2
   fi
 
-  # Targets under eol/ are best-effort: build failures are warnings, not errors.
-  # Non-EOL failures are hard errors — exit 1 so CI catches them immediately.
-  _eol=0
-  [[ "$RPM_TARGET" == eol/* ]] && _eol=1
-
   echo "entrypoint: building $SRPM for $RPM_TARGET"
   if ! \mock -r "$RPM_TARGET" --rebuild "$SRPM"; then
-    if [ "$_eol" -eq 1 ]; then
-      echo "entrypoint: WARNING: EOL target $RPM_TARGET failed — skipping, existing RPMs preserved" >&2
-      exit 0
-    else
-      echo "entrypoint: ERROR: build failed for $RPM_TARGET" >&2
-      exit 1
-    fi
+    echo "entrypoint: ERROR: build failed for $RPM_TARGET" >&2
+    exit 1
   fi
 
   # Copy results out — never removes existing RPMs, only adds new ones
