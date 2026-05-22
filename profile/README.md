@@ -1,6 +1,79 @@
 # rpm-devel
 
-RPM packaging organization for [CasjaysDev](https://github.com/casjaysdev). Builds signed RPM packages for RHEL/AlmaLinux (EL7–EL10) and Fedora (36+), distributed via a self-hosted DNF repository.
+RPM packaging organization for [CasjaysDev](https://github.com/casjaysdev). Builds signed RPM packages for RHEL/AlmaLinux (EL7–EL10) and Fedora (36+), distributed via a self-hosted DNF repository on SourceForge.
+
+## Package Repo Layout
+
+Every package lives in its own repository under this org, named after the package. Each repo uses a **flat layout** — all files at the root, no subdirectories:
+
+```
+{package}/
+  {package}.spec          ← spec file at root
+  {package}-{ver}.tar.gz  ← committed source(s) when not fetchable upstream
+  *.patch                 ← patches, if any
+  sources                 ← lookaside hash file, if used
+```
+
+No `SPEC/`, `SOURCES/`, `Makefile`, `IDEA.md`, `CLAUDE.md`, `.github/`, or any other wrapper infrastructure. `spectool -g -R` fetches all `SourceN:` URLs at build time.
+
+The `.github` repo (this one) contains only the shared build container and org profile.
+
+---
+
+## Published Repo Layout
+
+Packages are published on SourceForge under `rpm-devel.sourceforge.io/repo/`:
+
+```
+RHEL/{VER}/{ARCH}/
+  rpms/     CasjaysDev custom-built packages
+  addons/   Upstream third-party mirrors (OS, langs, databases, infra)
+  extras/   Community extras (EPEL, RPM Fusion, Ghettoforge, ELRepo)
+  debug/    All debuginfo / debugsource RPMs
+
+RHEL/{VER}/
+  srpms/    Source RPMs (shared across arches — stored once per version)
+
+Fedora/{VER}/{ARCH}/
+  rpms/
+  addons/
+  extras/
+  debug/
+
+Fedora/{VER}/
+  srpms/
+```
+
+### DNF Repo Sections
+
+Clients receive a mirrorlist that resolves to SourceForge and its mirrors.
+
+| Section | mirrorlist path | Contents |
+|---|---|---|
+| `casjay-rpms` | `ZREPO/RHEL/$releasever/$basearch/mirrors/rpms` | CasjaysDev-built packages |
+| `casjay-addons` | `ZREPO/RHEL/$releasever/$basearch/mirrors/addons` | Upstream third-party (OS, langs, DBs, infra) |
+| `casjay-extras` | `ZREPO/RHEL/$releasever/$basearch/mirrors/extras` | EPEL, RPM Fusion, Ghettoforge, ELRepo |
+| `casjay-debug` | `ZREPO/RHEL/$releasever/$basearch/mirrors/debug` | debuginfo / debugsource |
+| `casjay-sources` | `ZREPO/RHEL/$releasever/mirrors/srpms` | Source RPMs |
+
+Install the `casjay-release` package to get all repo files and the GPG key:
+
+```sh
+dnf install -y https://github.com/rpm-devel/casjay-release/releases/latest/download/casjay-release.noarch.rpm
+```
+
+Or add the `casjay-rpms` section manually:
+
+```ini
+[casjay-rpms]
+name=Casjay RPMs - $releasever $basearch
+mirrorlist=https://github.com/rpm-devel/casjay-release/raw/main/ZREPO/RHEL/$releasever/$basearch/mirrors/rpms
+gpgkey=https://github.com/rpm-devel/casjay-release/raw/main/ZREPO/RHEL/keys/RPM-GPG-KEY-casjay
+enabled=1
+module_hotfixes=1
+```
+
+---
 
 ## Build Container
 
@@ -71,7 +144,7 @@ rpmbuild -ba ~/rpmbuild/SPECS/package.spec
 
 Set `RPM_TARGET` and pass either a `.spec` or `.src.rpm` as the command.
 
-**From a `.spec` file** — the entrypoint runs `spectool`, `rpmbuild -bs`, then `mock --rebuild` automatically:
+**From a `.spec` file** — entrypoint runs `spectool`, `rpmbuild -bs`, then `mock --rebuild` automatically:
 
 ```sh
 docker run --rm -it --privileged \
@@ -136,24 +209,3 @@ All failures are hard errors — EOL targets are still in production and fully s
 |---|---|
 | `:latest` | Most recent build — rebuilt on every push to `docker/**` and quarterly |
 | `:YYMM` | Date-stamped snapshot (e.g. `:2604`) |
-
----
-
-## Repository Layout
-
-Each package lives in its own repo under this org, named after the package. The `.github` repo contains only the shared build container and org profile.
-
----
-
-## DNF Repository
-
-Packages are published at `https://sourceforge.net/projects/casjaysdev/files/RHEL/`.
-
-```ini
-[casjaysdev]
-name=CasjaysDev - $releasever - $basearch
-baseurl=https://sourceforge.net/projects/casjaysdev/files/RHEL/el$releasever/$basearch/casjay/
-gpgcheck=1
-gpgkey=https://github.com/rpm-devel.gpg
-enabled=1
-```
