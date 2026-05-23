@@ -95,7 +95,8 @@ RUN set -euo pipefail; \
       aarch64) GOARCH=arm64 ;; \
       *)       echo "unsupported arch: $(uname -m)" >&2; exit 1 ;; \
     esac; \
-    dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo; \
+    curl -qLSs https://cli.github.com/packages/rpm/gh-cli.repo \
+      -o /etc/yum.repos.d/gh-cli.repo; \
     dnf install -y gh; \
     dnf clean all; \
     rm -rf /var/cache/dnf /var/log/dnf* /var/log/hawkey.log; \
