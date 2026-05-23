@@ -108,11 +108,10 @@ RUN set -euo pipefail; \
       | tar -xz -C /tmp; \
     install -m 0755 /tmp/bin/glab /usr/local/bin/glab; \
     rm -rf /tmp/bin; \
-    TEA_ASSET="tea-linux-${GOARCH}"; \
     TEA_URL=$(curl -qLSs \
       "https://gitea.com/api/v1/repos/gitea/tea/releases?limit=1" \
-      | jq -r --arg a "$TEA_ASSET" \
-        '.[0].assets[] | select(.name == $a) | .browser_download_url'); \
+      | jq -r --arg a "linux-${GOARCH}" \
+        '.[0].assets[] | select(.name | test("tea-[0-9.]+-" + $a + "$")) | .browser_download_url'); \
     curl -qLSs "$TEA_URL" -o /usr/local/bin/tea; \
     chmod 0755 /usr/local/bin/tea
 
